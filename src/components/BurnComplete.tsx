@@ -68,7 +68,7 @@ const BurnComplete = ({ amount }: { amount: number }) => {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
         <p className="font-mono text-4xl font-bold text-primary">
-          {amount.toLocaleString("pt-BR")}
+          {amount.toLocaleString("en-US")}
         </p>
         <p className="mt-4 font-mono text-sm text-burn">HYDR QUEIMADOS</p>
       </div>
