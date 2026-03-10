@@ -178,7 +178,7 @@ BURN_RESOURCE
           <div className="space-y-6">
             {/* Balance */}
             <div className="flex items-center justify-between font-mono text-sm">
-              <span className="text-foreground">Seus tokens</span>
+              <span className="text-foreground">Your coins</span>
               <button
                 onClick={() => fetchBalance(accountAddress)}
                 className="flex items-center gap-2 text-primary transition-colors hover:text-foreground"
