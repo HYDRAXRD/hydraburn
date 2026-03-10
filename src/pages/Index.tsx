@@ -165,7 +165,7 @@ BURN_RESOURCE
             $HYDR
           </h1>
           <p className="mt-2 text-sm text-foreground">
-            Queime seus tokens e reduza permanentemente o supply total
+            Burn your tokens and permanently reduce total supply
           </p>
         </div>
 
@@ -178,14 +178,14 @@ BURN_RESOURCE
           <div className="space-y-6">
             {/* Balance */}
             <div className="flex items-center justify-between font-mono text-sm">
-              <span className="text-foreground">Seus tokens</span>
+              <span className="text-foreground">Your coins</span>
               <button
                 onClick={() => fetchBalance(accountAddress)}
                 className="flex items-center gap-2 text-primary transition-colors hover:text-foreground"
               >
                 <span>
                   {balance !== null
-                    ? balance.toLocaleString("pt-BR")
+                    ? balance.toLocaleString("en-US")
                     : "..."}
                 </span>
                 <span className="text-foreground">↻</span>
@@ -230,12 +230,12 @@ BURN_RESOURCE
               disabled={burnAmount <= 0 || burning}
               onClick={handleBurn}
             >
-              {burning ? "AGUARDANDO CARTEIRA..." : "QUEIMAR"}
+              {burning ? "AWAITING WALLET..." : "BURN"}
             </Button>
 
             {burnAmount > 0 && (
               <p className="text-center font-mono text-xs text-muted-foreground">
-                {burnAmount.toLocaleString("pt-BR")} HYDR serão destruídos permanentemente
+                {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
               </p>
             )}
           </div>

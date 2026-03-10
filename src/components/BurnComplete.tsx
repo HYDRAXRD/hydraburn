@@ -13,7 +13,7 @@ const BurnComplete = ({ amount }: { amount: number }) => {
 
   useEffect(() => {
     const t1 = setTimeout(() => {
-      const amountStr = amount.toLocaleString("pt-BR");
+      const amountStr = amount.toLocaleString("en-US");
       const chars = amountStr.split("");
       const newParticles: Particle[] = chars.map((char, i) => ({
         id: i,
@@ -68,9 +68,9 @@ const BurnComplete = ({ amount }: { amount: number }) => {
     <div className="flex min-h-screen items-center justify-center bg-background">
       <div className="text-center">
         <p className="font-mono text-4xl font-bold text-primary">
-          {amount.toLocaleString("pt-BR")}
+          {amount.toLocaleString("en-US")}
         </p>
-        <p className="mt-4 font-mono text-sm text-burn">HYDR QUEIMADOS</p>
+        <p className="mt-4 font-mono text-sm text-burn">HYDR BURNED</p>
       </div>
     </div>
   );
