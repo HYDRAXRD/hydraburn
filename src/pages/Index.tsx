@@ -7,6 +7,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import BurnComplete from "@/components/BurnComplete";
+import EmberParticles from "@/components/EmberParticles";
 
 const HYDRA_RESOURCE =
   "resource_rdx1t4kc2yjdcqprwu70tahua3p8uwvjej9q3rktpxdr8p5pmcp4almd6r";
@@ -157,25 +158,47 @@ BURN_RESOURCE
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-md px-6">
+    <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden">
+      {/* Ambient ember particles */}
+      <EmberParticles />
+
+      {/* Radial glow from bottom */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_hsla(16,100%,50%,0.06)_0%,_transparent_60%)]" />
+
+      {/* Subtle top vignette */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_transparent_50%,_hsl(var(--background))_100%)]" />
+
+      <div className="relative z-10 w-full max-w-md px-6">
+        {/* Fire icon */}
+        <div className="mb-6 flex justify-center">
+          <div className="relative">
+            <span className="text-5xl block animate-pulse-burn rounded-full">🔥</span>
+          </div>
+        </div>
+
         {/* Title */}
         <div className="mb-10 text-center">
-          <h1 className="font-mono text-3xl font-bold text-primary tracking-tight">
+          <h1 className="font-mono text-4xl font-bold text-primary tracking-tight">
             $HYDR
           </h1>
-          <p className="mt-2 text-sm text-foreground">
+          <div className="mx-auto mt-3 h-px w-16 bg-burn/40" />
+          <p className="mt-3 text-sm text-foreground tracking-wide">
             Burn your tokens and permanently reduce total supply
           </p>
         </div>
 
         {!connected ? (
-          <div className="flex justify-center">
-            {/* @ts-ignore */}
-            <radix-connect-button />
+          <div className="space-y-8">
+            <div className="flex justify-center">
+              {/* @ts-ignore */}
+              <radix-connect-button />
+            </div>
+            <p className="text-center font-mono text-xs text-muted-foreground tracking-wider uppercase">
+              Connect your wallet to begin the ritual
+            </p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in">
             {/* Balance */}
             <div className="flex items-center justify-between font-mono text-sm">
               <span className="text-foreground">Your coins</span>
@@ -193,7 +216,7 @@ BURN_RESOURCE
             </div>
 
             {/* Input */}
-            <div className="flex items-center gap-3 rounded border border-border bg-card p-4">
+            <div className="flex items-center gap-3 rounded border border-border bg-card p-4 transition-all focus-within:border-burn/40 focus-within:shadow-[0_0_20px_hsla(16,100%,50%,0.1)]">
               <span className="text-burn text-lg">🔥</span>
               <input
                 type="number"
@@ -234,7 +257,7 @@ BURN_RESOURCE
             </Button>
 
             {burnAmount > 0 && (
-              <p className="text-center font-mono text-xs text-muted-foreground">
+              <p className="text-center font-mono text-xs text-muted-foreground animate-fade-in">
                 {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
               </p>
             )}

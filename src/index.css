@@ -42,7 +42,6 @@
     --burn: 16 100% 50%;
     --burn-foreground: 0 0% 100%;
     --burn-glow: 0 0 40px hsla(16, 100%, 50%, 0.3);
-  }
 }
 
 @layer base {
@@ -57,5 +56,22 @@
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-mono);
+  }
+}
+
+@layer utilities {
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
