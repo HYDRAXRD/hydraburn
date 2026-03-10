@@ -185,7 +185,7 @@ BURN_RESOURCE
               >
                 <span>
                   {balance !== null
-                    ? balance.toLocaleString("pt-BR")
+                    ? balance.toLocaleString("en-US")
                     : "..."}
                 </span>
                 <span className="text-foreground">↻</span>
