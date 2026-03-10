@@ -230,7 +230,7 @@ BURN_RESOURCE
               disabled={burnAmount <= 0 || burning}
               onClick={handleBurn}
             >
-              {burning ? "AGUARDANDO CARTEIRA..." : "QUEIMAR"}
+              {burning ? "AWAITING WALLET..." : "BURN"}
             </Button>
 
             {burnAmount > 0 && (
