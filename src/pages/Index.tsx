@@ -165,7 +165,7 @@ BURN_RESOURCE
             $HYDR
           </h1>
           <p className="mt-2 text-sm text-foreground">
-            Queime seus tokens e reduza permanentemente o supply total
+            Burn your tokens and permanently reduce total supply
           </p>
         </div>
 
