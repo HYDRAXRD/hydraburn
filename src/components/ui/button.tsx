@@ -15,6 +15,8 @@ const buttonVariants = cva(
         secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: "hover:bg-accent hover:text-accent-foreground",
         link: "text-primary underline-offset-4 hover:underline",
+        burn: "bg-burn text-burn-foreground font-mono font-bold uppercase tracking-widest hover:bg-burn/90 animate-pulse-burn",
+        wallet: "border border-border bg-card text-primary font-mono tracking-wider hover:border-primary/50 hover:bg-accent",
       },
       size: {
         default: "h-10 px-4 py-2",
