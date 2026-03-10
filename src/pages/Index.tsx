@@ -235,7 +235,7 @@ BURN_RESOURCE
 
             {burnAmount > 0 && (
               <p className="text-center font-mono text-xs text-muted-foreground">
-                {burnAmount.toLocaleString("pt-BR")} HYDR serão destruídos permanentemente
+                {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
               </p>
             )}
           </div>

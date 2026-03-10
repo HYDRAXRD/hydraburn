@@ -13,7 +13,7 @@ const BurnComplete = ({ amount }: { amount: number }) => {
 
   useEffect(() => {
     const t1 = setTimeout(() => {
-      const amountStr = amount.toLocaleString("pt-BR");
+      const amountStr = amount.toLocaleString("en-US");
       const chars = amountStr.split("");
       const newParticles: Particle[] = chars.map((char, i) => ({
         id: i,
