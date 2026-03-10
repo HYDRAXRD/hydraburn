@@ -171,6 +171,7 @@ BURN_RESOURCE
 
         {!connected ? (
           <div className="flex justify-center">
+            {/* @ts-ignore */}
             <radix-connect-button />
           </div>
         ) : (
