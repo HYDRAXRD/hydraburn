@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   RadixDappToolkit,
   DataRequestBuilder,
   RadixNetwork,
 } from "@radixdlt/radix-dapp-toolkit";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import BurnComplete from "@/components/BurnComplete";
 import EmberParticles from "@/components/EmberParticles";
 
@@ -18,6 +19,7 @@ const Index = () => {
   const [accountAddress, setAccountAddress] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [burnAmount, setBurnAmount] = useState(0);
+  const [sliderValue, setSliderValue] = useState([0]);
   const [burning, setBurning] = useState(false);
   const [burned, setBurned] = useState(false);
   const [burnedAmount, setBurnedAmount] = useState(0);
@@ -119,25 +121,29 @@ const Index = () => {
     }
   };
 
+  const handleSliderChange = useCallback(
+    (value: number[]) => {
+      setSliderValue(value);
+      if (balance) {
+        setBurnAmount(Math.floor((value[0] / 100) * balance));
+      }
+    },
+    [balance]
+  );
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value) || 0;
     const clamped = Math.min(val, balance || 0);
     setBurnAmount(clamped);
-  };
-
-  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const step = e.shiftKey ? 100 : 10;
-    const direction = e.deltaY < 0 ? 1 : -1;
-    setBurnAmount((prev) => {
-      const next = prev + direction * step;
-      return Math.max(0, Math.min(next, balance || 0));
-    });
+    if (balance && balance > 0) {
+      setSliderValue([(clamped / balance) * 100]);
+    }
   };
 
   const handleAll = () => {
     if (balance) {
       setBurnAmount(balance);
+      setSliderValue([100]);
     }
   };
 
@@ -254,9 +260,8 @@ BURN_RESOURCE
                     type="number"
                     value={burnAmount || ""}
                     onChange={handleInputChange}
-                    onWheel={handleWheel}
                     placeholder="0"
-                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground"
+                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <span className="font-mono text-sm text-foreground">HYDR</span>
                   <button
@@ -267,6 +272,15 @@ BURN_RESOURCE
                   </button>
                 </div>
               </div>
+
+              {/* Slider */}
+              <Slider
+                value={sliderValue}
+                onValueChange={handleSliderChange}
+                max={100}
+                step={1}
+                className="py-2"
+              />
 
               {/* Burn Button */}
               <Button
