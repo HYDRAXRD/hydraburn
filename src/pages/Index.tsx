@@ -21,9 +21,37 @@ const Index = () => {
   const [burning, setBurning] = useState(false);
   const [burned, setBurned] = useState(false);
   const [burnedAmount, setBurnedAmount] = useState(0);
+  const [totalBurned, setTotalBurned] = useState<number | null>(null);
   const rdtRef = useRef<RadixDappToolkit | null>(null);
 
+  const fetchTotalBurned = async () => {
+    try {
+      const response = await fetch(
+        "https://mainnet.radixdlt.com/state/entity/details",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            addresses: [HYDRA_RESOURCE],
+            aggregation_level: "Global",
+          }),
+        }
+      );
+      const data = await response.json();
+      const details = data?.items?.[0]?.details;
+      if (details) {
+        const totalMinted = parseFloat(details.total_minted || "0");
+        const totalSupply = parseFloat(details.total_supply || "0");
+        setTotalBurned(Math.floor(totalMinted - totalSupply));
+      }
+    } catch {
+      setTotalBurned(null);
+    }
+  };
+
   useEffect(() => {
+    fetchTotalBurned();
+
     const rdt = RadixDappToolkit({
       dAppDefinitionAddress:
         "account_rdx12yvhjq3j3xjnrjap789gra47eh8p4av5ygx23rgch74sdndr0d2qdu",
@@ -158,7 +186,7 @@ BURN_RESOURCE
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background overflow-hidden">
+    <div className="relative flex min-h-screen flex-col bg-background overflow-hidden">
       {/* Ambient ember particles */}
       <EmberParticles />
 
@@ -168,105 +196,119 @@ BURN_RESOURCE
       {/* Subtle top vignette */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_transparent_50%,_hsl(var(--background))_100%)]" />
 
-      <div className="relative z-10 w-full max-w-md px-6">
-        {/* Fire icon */}
-        <div className="mb-6 flex justify-center">
-          <div className="relative">
-            <span className="text-5xl block animate-pulse-burn rounded-full">🔥</span>
-          </div>
+      {/* Top bar with wallet connect */}
+      <div className="relative z-20 flex items-center justify-between px-6 py-4">
+        <div className="flex items-center gap-2">
+          <span className="text-2xl">🔥</span>
+          <span className="font-mono text-lg font-bold text-primary tracking-tight">HYDRA</span>
+          <span className="rounded bg-burn/20 px-2 py-0.5 font-mono text-[10px] font-bold text-burn uppercase tracking-widest">Burn</span>
         </div>
+        <div>
+          {/* @ts-ignore */}
+          <radix-connect-button />
+        </div>
+      </div>
 
-        {/* Title */}
+      {/* Main content */}
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-12">
+        {/* Total Burned Hero */}
         <div className="mb-10 text-center">
-          <h1 className="font-mono text-4xl font-bold text-primary tracking-tight">
-            $HYDR
-          </h1>
-          <div className="mx-auto mt-3 h-px w-16 bg-burn/40" />
-          <p className="mt-3 text-sm text-foreground tracking-wide">
-            Burn your tokens and permanently reduce total supply
+          <p className="font-mono text-xs text-muted-foreground uppercase tracking-[0.3em] mb-3">
+            Total HYDR Burned
+          </p>
+          <div className="relative">
+            <h1 className="font-mono text-5xl sm:text-7xl font-black text-burn tracking-tight tabular-nums">
+              {totalBurned !== null
+                ? totalBurned.toLocaleString("en-US")
+                : "···"}
+            </h1>
+            <div className="absolute -inset-4 -z-10 rounded-2xl bg-burn/5 blur-2xl" />
+          </div>
+          <p className="mt-3 text-sm text-foreground/60 tracking-wide">
+            tokens permanently destroyed
           </p>
         </div>
 
-        {!connected ? (
-          <div className="space-y-8">
-            <div className="flex justify-center">
-              {/* @ts-ignore */}
-              <radix-connect-button />
+        {/* Burn Card */}
+        <div className="w-full max-w-md">
+          {!connected ? (
+            <div className="rounded-xl border border-border/50 bg-card/60 p-8 backdrop-blur-sm text-center space-y-4">
+              <span className="text-4xl block animate-pulse-burn">🔥</span>
+              <p className="font-mono text-sm text-muted-foreground tracking-wide">
+                Connect your wallet to burn HYDR tokens
+              </p>
             </div>
-            <p className="text-center font-mono text-xs text-muted-foreground tracking-wider uppercase">
-              Connect your wallet to begin the ritual
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-6 animate-fade-in">
-            {/* Wallet Balance Card */}
-            <div className="rounded-lg border border-burn/20 bg-card/80 p-5 backdrop-blur-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Wallet Balance</span>
+          ) : (
+            <div className="space-y-5 animate-fade-in">
+              {/* Wallet Balance Card */}
+              <div className="rounded-xl border border-burn/20 bg-card/80 p-5 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
+                    Wallet Balance
+                  </span>
+                  <button
+                    onClick={() => fetchBalance(accountAddress)}
+                    className="text-muted-foreground transition-colors hover:text-burn text-sm"
+                    title="Refresh balance"
+                  >
+                    ↻
+                  </button>
+                </div>
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-3xl font-bold text-primary">
+                    {balance !== null ? balance.toLocaleString("en-US") : "..."}
+                  </span>
+                  <span className="font-mono text-sm text-burn">HYDR</span>
+                </div>
+              </div>
+
+              {/* Input */}
+              <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all focus-within:border-burn/40 focus-within:shadow-[0_0_20px_hsla(16,100%,50%,0.1)]">
+                <span className="text-burn text-lg">🔥</span>
+                <input
+                  type="number"
+                  value={burnAmount || ""}
+                  onChange={handleInputChange}
+                  placeholder="0"
+                  className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                />
+                <span className="font-mono text-sm text-foreground">HYDR</span>
                 <button
-                  onClick={() => fetchBalance(accountAddress)}
-                  className="text-muted-foreground transition-colors hover:text-burn text-sm"
-                  title="Refresh balance"
+                  onClick={handleAll}
+                  className="rounded bg-burn/20 px-3 py-1 font-mono text-xs font-bold text-burn transition-colors hover:bg-burn/30"
                 >
-                  ↻
+                  ALL
                 </button>
               </div>
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-3xl font-bold text-primary">
-                  {balance !== null ? balance.toLocaleString("en-US") : "..."}
-                </span>
-                <span className="font-mono text-sm text-burn">HYDR</span>
-              </div>
-            </div>
 
-            {/* Input */}
-            <div className="flex items-center gap-3 rounded border border-border bg-card p-4 transition-all focus-within:border-burn/40 focus-within:shadow-[0_0_20px_hsla(16,100%,50%,0.1)]">
-              <span className="text-burn text-lg">🔥</span>
-              <input
-                type="number"
-                value={burnAmount || ""}
-                onChange={handleInputChange}
-                placeholder="0"
-                className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+              {/* Slider */}
+              <Slider
+                value={sliderValue}
+                onValueChange={handleSliderChange}
+                max={100}
+                step={1}
+                className="py-2"
               />
-              <span className="font-mono text-sm text-foreground">
-                HYDR
-              </span>
-              <button
-                onClick={handleAll}
-                className="rounded bg-burn/20 px-3 py-1 font-mono text-xs font-bold text-burn transition-colors hover:bg-burn/30"
+
+              {/* Burn Button */}
+              <Button
+                variant="burn"
+                size="lg"
+                className="w-full text-base"
+                disabled={burnAmount <= 0 || burning}
+                onClick={handleBurn}
               >
-                ALL
-              </button>
+                {burning ? "AWAITING WALLET..." : "BURN"}
+              </Button>
+
+              {burnAmount > 0 && (
+                <p className="text-center font-mono text-xs text-muted-foreground animate-fade-in">
+                  {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
+                </p>
+              )}
             </div>
-
-            {/* Slider */}
-            <Slider
-              value={sliderValue}
-              onValueChange={handleSliderChange}
-              max={100}
-              step={1}
-              className="py-2"
-            />
-
-            {/* Burn Button */}
-            <Button
-              variant="burn"
-              size="lg"
-              className="w-full text-base"
-              disabled={burnAmount <= 0 || burning}
-              onClick={handleBurn}
-            >
-              {burning ? "AWAITING WALLET..." : "BURN"}
-            </Button>
-
-            {burnAmount > 0 && (
-              <p className="text-center font-mono text-xs text-muted-foreground animate-fade-in">
-                {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
-              </p>
-            )}
-          </div>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
