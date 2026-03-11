@@ -1,23 +1,23 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   RadixDappToolkit,
   DataRequestBuilder,
   RadixNetwork,
 } from "@radixdlt/radix-dapp-toolkit";
 import { Button } from "@/components/ui/button";
-import { Slider } from "@/components/ui/slider";
 import BurnComplete from "@/components/BurnComplete";
 import EmberParticles from "@/components/EmberParticles";
 
 const HYDRA_RESOURCE =
   "resource_rdx1t4kc2yjdcqprwu70tahua3p8uwvjej9q3rktpxdr8p5pmcp4almd6r";
 
+const POLL_INTERVAL = 15000; // 15s auto-refresh for total burned
+
 const Index = () => {
   const [connected, setConnected] = useState(false);
   const [accountAddress, setAccountAddress] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [burnAmount, setBurnAmount] = useState(0);
-  const [sliderValue, setSliderValue] = useState([0]);
   const [burning, setBurning] = useState(false);
   const [burned, setBurned] = useState(false);
   const [burnedAmount, setBurnedAmount] = useState(0);
@@ -51,6 +51,7 @@ const Index = () => {
 
   useEffect(() => {
     fetchTotalBurned();
+    const interval = setInterval(fetchTotalBurned, POLL_INTERVAL);
 
     const rdt = RadixDappToolkit({
       dAppDefinitionAddress:
@@ -80,6 +81,7 @@ const Index = () => {
     });
 
     return () => {
+      clearInterval(interval);
       sub.unsubscribe();
       rdt.destroy();
     };
@@ -117,29 +119,25 @@ const Index = () => {
     }
   };
 
-  const handleSliderChange = useCallback(
-    (value: number[]) => {
-      setSliderValue(value);
-      if (balance) {
-        setBurnAmount(Math.floor((value[0] / 100) * balance));
-      }
-    },
-    [balance]
-  );
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value) || 0;
     const clamped = Math.min(val, balance || 0);
     setBurnAmount(clamped);
-    if (balance && balance > 0) {
-      setSliderValue([(clamped / balance) * 100]);
-    }
+  };
+
+  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const step = e.shiftKey ? 100 : 10;
+    const direction = e.deltaY < 0 ? 1 : -1;
+    setBurnAmount((prev) => {
+      const next = prev + direction * step;
+      return Math.max(0, Math.min(next, balance || 0));
+    });
   };
 
   const handleAll = () => {
     if (balance) {
       setBurnAmount(balance);
-      setSliderValue([100]);
     }
   };
 
@@ -173,6 +171,8 @@ BURN_RESOURCE
       if (result.isOk()) {
         setBurnedAmount(burnAmount);
         setBurned(true);
+        // Refresh total burned after successful burn
+        setTimeout(fetchTotalBurned, 3000);
       }
     } catch (err) {
       console.error("Burn transaction failed:", err);
@@ -187,16 +187,12 @@ BURN_RESOURCE
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background overflow-hidden">
-      {/* Ambient ember particles */}
       <EmberParticles />
 
-      {/* Radial glow from bottom */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_hsla(16,100%,50%,0.06)_0%,_transparent_60%)]" />
-
-      {/* Subtle top vignette */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_transparent_50%,_hsl(var(--background))_100%)]" />
 
-      {/* Top bar with wallet connect */}
+      {/* Top bar */}
       <div className="relative z-20 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🔥</span>
@@ -240,55 +236,37 @@ BURN_RESOURCE
             </div>
           ) : (
             <div className="space-y-5 animate-fade-in">
-              {/* Wallet Balance Card */}
-              <div className="rounded-xl border border-burn/20 bg-card/80 p-5 backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">
-                    Wallet Balance
-                  </span>
+              {/* Input with balance display */}
+              <div className="rounded-xl border border-border bg-card p-4 transition-all focus-within:border-burn/40 focus-within:shadow-[0_0_20px_hsla(16,100%,50%,0.1)]">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Burn amount</span>
                   <button
                     onClick={() => fetchBalance(accountAddress)}
-                    className="text-muted-foreground transition-colors hover:text-burn text-sm"
+                    className="font-mono text-xs text-muted-foreground hover:text-burn transition-colors"
                     title="Refresh balance"
                   >
-                    ↻
+                    Balance: {balance !== null ? balance.toLocaleString("en-US") : "..."} HYDR ↻
                   </button>
                 </div>
-                <div className="flex items-baseline gap-2">
-                  <span className="font-mono text-3xl font-bold text-primary">
-                    {balance !== null ? balance.toLocaleString("en-US") : "..."}
-                  </span>
-                  <span className="font-mono text-sm text-burn">HYDR</span>
+                <div className="flex items-center gap-3">
+                  <span className="text-burn text-lg">🔥</span>
+                  <input
+                    type="number"
+                    value={burnAmount || ""}
+                    onChange={handleInputChange}
+                    onWheel={handleWheel}
+                    placeholder="0"
+                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground"
+                  />
+                  <span className="font-mono text-sm text-foreground">HYDR</span>
+                  <button
+                    onClick={handleAll}
+                    className="rounded bg-burn/20 px-3 py-1 font-mono text-xs font-bold text-burn transition-colors hover:bg-burn/30"
+                  >
+                    MAX
+                  </button>
                 </div>
               </div>
-
-              {/* Input */}
-              <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-4 transition-all focus-within:border-burn/40 focus-within:shadow-[0_0_20px_hsla(16,100%,50%,0.1)]">
-                <span className="text-burn text-lg">🔥</span>
-                <input
-                  type="number"
-                  value={burnAmount || ""}
-                  onChange={handleInputChange}
-                  placeholder="0"
-                  className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                />
-                <span className="font-mono text-sm text-foreground">HYDR</span>
-                <button
-                  onClick={handleAll}
-                  className="rounded bg-burn/20 px-3 py-1 font-mono text-xs font-bold text-burn transition-colors hover:bg-burn/30"
-                >
-                  ALL
-                </button>
-              </div>
-
-              {/* Slider */}
-              <Slider
-                value={sliderValue}
-                onValueChange={handleSliderChange}
-                max={100}
-                step={1}
-                className="py-2"
-              />
 
               {/* Burn Button */}
               <Button
