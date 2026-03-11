@@ -12,7 +12,10 @@ import EmberParticles from "@/components/EmberParticles";
 const HYDRA_RESOURCE =
   "resource_rdx1t4kc2yjdcqprwu70tahua3p8uwvjej9q3rktpxdr8p5pmcp4almd6r";
 
-const POLL_INTERVAL = 15000; // 15s auto-refresh for total burned
+const DAPP_ACCOUNT =
+  "account_rdx128thzxyzcsts99j7cudr492tg0r2wwdx32ay5qafa4r524mp0k0p8y";
+
+const POLL_INTERVAL = 15000;
 
 const Index = () => {
   const [connected, setConnected] = useState(false);
@@ -56,8 +59,7 @@ const Index = () => {
     const interval = setInterval(fetchTotalBurned, POLL_INTERVAL);
 
     const rdt = RadixDappToolkit({
-      dAppDefinitionAddress:
-        "account_rdx12yvhjq3j3xjnrjap789gra47eh8p4av5ygx23rgch74sdndr0d2qdu",
+      dAppDefinitionAddress: DAPP_ACCOUNT,
       networkId: RadixNetwork.Mainnet,
       applicationName: "HYDRA Burn",
       applicationVersion: "1.0.0",
@@ -79,6 +81,8 @@ const Index = () => {
         setConnected(false);
         setAccountAddress("");
         setBalance(null);
+        setBurnAmount(0);
+        setSliderValue([0]);
       }
     });
 
@@ -112,9 +116,15 @@ const Index = () => {
         const amount = parseFloat(
           hydra.vaults?.items?.[0]?.amount || "0"
         );
-        setBalance(Math.floor(amount));
+        const floored = Math.floor(amount);
+        setBalance(floored);
+        // Reset burn amount to 0 when balance is refreshed
+        setBurnAmount(0);
+        setSliderValue([0]);
       } else {
         setBalance(0);
+        setBurnAmount(0);
+        setSliderValue([0]);
       }
     } catch {
       setBalance(0);
@@ -124,7 +134,7 @@ const Index = () => {
   const handleSliderChange = useCallback(
     (value: number[]) => {
       setSliderValue(value);
-      if (balance) {
+      if (balance && balance > 0) {
         setBurnAmount(Math.floor((value[0] / 100) * balance));
       }
     },
@@ -133,7 +143,7 @@ const Index = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value) || 0;
-    const clamped = Math.min(val, balance || 0);
+    const clamped = Math.min(Math.max(val, 0), balance || 0);
     setBurnAmount(clamped);
     if (balance && balance > 0) {
       setSliderValue([(clamped / balance) * 100]);
@@ -141,7 +151,7 @@ const Index = () => {
   };
 
   const handleAll = () => {
-    if (balance) {
+    if (balance && balance > 0) {
       setBurnAmount(balance);
       setSliderValue([100]);
     }
@@ -177,7 +187,6 @@ BURN_RESOURCE
       if (result.isOk()) {
         setBurnedAmount(burnAmount);
         setBurned(true);
-        // Refresh total burned after successful burn
         setTimeout(fetchTotalBurned, 3000);
       }
     } catch (err) {
@@ -261,6 +270,8 @@ BURN_RESOURCE
                     value={burnAmount || ""}
                     onChange={handleInputChange}
                     placeholder="0"
+                    min={0}
+                    max={balance || 0}
                     className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <span className="font-mono text-sm text-foreground">HYDR</span>
@@ -281,6 +292,11 @@ BURN_RESOURCE
                 step={1}
                 className="py-2"
               />
+
+              {/* Percentage label */}
+              <p className="text-center font-mono text-xs text-muted-foreground">
+                {sliderValue[0].toFixed(0)}% of balance
+              </p>
 
               {/* Burn Button */}
               <Button
