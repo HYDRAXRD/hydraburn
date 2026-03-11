@@ -121,25 +121,29 @@ const Index = () => {
     }
   };
 
+  const handleSliderChange = useCallback(
+    (value: number[]) => {
+      setSliderValue(value);
+      if (balance) {
+        setBurnAmount(Math.floor((value[0] / 100) * balance));
+      }
+    },
+    [balance]
+  );
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value) || 0;
     const clamped = Math.min(val, balance || 0);
     setBurnAmount(clamped);
-  };
-
-  const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
-    e.preventDefault();
-    const step = e.shiftKey ? 100 : 10;
-    const direction = e.deltaY < 0 ? 1 : -1;
-    setBurnAmount((prev) => {
-      const next = prev + direction * step;
-      return Math.max(0, Math.min(next, balance || 0));
-    });
+    if (balance && balance > 0) {
+      setSliderValue([(clamped / balance) * 100]);
+    }
   };
 
   const handleAll = () => {
     if (balance) {
       setBurnAmount(balance);
+      setSliderValue([100]);
     }
   };
 
