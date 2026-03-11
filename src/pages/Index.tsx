@@ -260,9 +260,8 @@ BURN_RESOURCE
                     type="number"
                     value={burnAmount || ""}
                     onChange={handleInputChange}
-                    onWheel={handleWheel}
                     placeholder="0"
-                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground"
+                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <span className="font-mono text-sm text-foreground">HYDR</span>
                   <button
