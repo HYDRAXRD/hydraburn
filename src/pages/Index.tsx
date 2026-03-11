@@ -199,20 +199,24 @@ BURN_RESOURCE
           </div>
         ) : (
           <div className="space-y-6 animate-fade-in">
-            {/* Balance */}
-            <div className="flex items-center justify-between font-mono text-sm">
-              <span className="text-foreground">Your coins</span>
-              <button
-                onClick={() => fetchBalance(accountAddress)}
-                className="flex items-center gap-2 text-primary transition-colors hover:text-foreground"
-              >
-                <span>
-                  {balance !== null
-                    ? balance.toLocaleString("en-US")
-                    : "..."}
+            {/* Wallet Balance Card */}
+            <div className="rounded-lg border border-burn/20 bg-card/80 p-5 backdrop-blur-sm">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Wallet Balance</span>
+                <button
+                  onClick={() => fetchBalance(accountAddress)}
+                  className="text-muted-foreground transition-colors hover:text-burn text-sm"
+                  title="Refresh balance"
+                >
+                  ↻
+                </button>
+              </div>
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-3xl font-bold text-primary">
+                  {balance !== null ? balance.toLocaleString("en-US") : "..."}
                 </span>
-                <span className="text-foreground">↻</span>
-              </button>
+                <span className="font-mono text-sm text-burn">HYDR</span>
+              </div>
             </div>
 
             {/* Input */}
