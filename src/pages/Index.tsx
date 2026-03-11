@@ -14,8 +14,9 @@ const HYDRA_RESOURCE =
 const DAPP_ACCOUNT =
   "account_rdx128thzxyzcsts99j7cudr492tg0r2wwdx32ay5qafa4r524mp0k0p8y";
 
+const HYDRA_LOGO = "https://arweave.net/dYJSMjZlaoVSttypbD46PJumutb0Nb-x1Zz8e7PdqA0";
+
 const POLL_INTERVAL = 15000;
-const SUCCESS_DURATION = 2000;
 
 type BurnPhase = "idle" | "awaiting_wallet" | "success_anim";
 
@@ -46,16 +47,14 @@ function BurnSuccessOverlay({
 
   useEffect(() => {
     const t1 = setTimeout(() => setTick(true), 80);
-    const t2 = setTimeout(onDone, SUCCESS_DURATION);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
-  }, [onDone]);
+    return () => clearTimeout(t1);
+  }, []);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm cursor-pointer"
+      onClick={onDone}
+    >
       {/* Brasas explodindo */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {embers.map((e) => (
@@ -99,8 +98,18 @@ function BurnSuccessOverlay({
           tick ? "anim-pop-in" : "opacity-0 scale-50"
         }`}
         style={{ minWidth: 280 }}
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Círculo de progresso SVG */}
+        {/* Botão fechar */}
+        <button
+          onClick={onDone}
+          className="absolute right-3 top-3 text-zinc-500 hover:text-white transition-colors text-lg leading-none"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+
+        {/* Círculo de progresso SVG com logo */}
         <div className="relative flex items-center justify-center">
           <svg width="120" height="120" className="-rotate-90">
             <circle
@@ -122,16 +131,16 @@ function BurnSuccessOverlay({
               strokeDasharray="314"
               strokeDashoffset="314"
               className={tick ? "anim-progress-fill" : ""}
-              style={{ animationDuration: `${SUCCESS_DURATION}ms` }}
+              style={{ animationDuration: "2000ms" }}
             />
           </svg>
 
-          <span
-            className={`absolute text-5xl ${tick ? "anim-shake" : ""}`}
+          <img
+            src={HYDRA_LOGO}
+            alt="Hydra"
+            className={`absolute w-14 h-14 rounded-full object-cover ${tick ? "anim-shake" : ""}`}
             style={{ animationDelay: "0.1s" }}
-          >
-            🔥
-          </span>
+          />
         </div>
 
         <p className="font-mono text-xl font-black tracking-tight text-orange-500">
@@ -143,11 +152,8 @@ function BurnSuccessOverlay({
           <span className="ml-2 text-sm text-zinc-400">HYDR</span>
         </p>
 
-        <p
-          className={`font-mono text-xs text-zinc-500 ${tick ? "anim-countdown" : ""}`}
-          style={{ animationDuration: `${SUCCESS_DURATION}ms` }}
-        >
-          Returning to burn screen...
+        <p className="font-mono text-xs text-zinc-500">
+          Tap anywhere to close
         </p>
       </div>
     </div>
@@ -293,13 +299,13 @@ const Index = () => {
   };
 
   const handleBurn = async () => {
-  if (!rdtRef.current || burnAmount <= 0 || !accountAddress) return;
+    if (!rdtRef.current || burnAmount <= 0 || !accountAddress) return;
 
-  setBurning(true);
-  setBurnPhase("awaiting_wallet");
-  const amount = burnAmount;
+    setBurning(true);
+    setBurnPhase("awaiting_wallet");
+    const amount = burnAmount;
 
-  const manifest = `
+    const manifest = `
 CALL_METHOD
     Address("${accountAddress}")
     "withdraw"
@@ -314,30 +320,28 @@ BURN_RESOURCE
     Bucket("bucket1")
 ;`.trim();
 
-  try {
-    const result = await rdtRef.current.walletApi.sendTransaction({
-      transactionManifest: manifest,
-    });
+    try {
+      const result = await rdtRef.current.walletApi.sendTransaction({
+        transactionManifest: manifest,
+      });
 
-    console.log("Burn transaction result:", result);
+      console.log("Burn result:", result);
 
-    setBurnedAmount(amount);
-    setBurnPhase("success_anim");
-    setBurning(false);
-
-    fetchBalance(accountAddress);
-    setTimeout(fetchTotalBurned, 3000);
-  } catch (err) {
-    console.error("Burn failed:", err);
-    setBurnPhase("idle");
-    setBurning(false);
-  }
-};
+      setBurnedAmount(amount);
+      setBurnPhase("success_anim");
+      setBurning(false);
+      fetchBalance(accountAddress);
+      setTimeout(fetchTotalBurned, 3000);
+    } catch (err) {
+      console.error("Burn failed:", err);
+      setBurnPhase("idle");
+      setBurning(false);
+    }
+  };
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background overflow-hidden">
 
-      {/* Overlay de animação de sucesso */}
       {burnPhase === "success_anim" && (
         <BurnSuccessOverlay amount={burnedAmount} onDone={resetBurnUi} />
       )}
@@ -350,7 +354,11 @@ BURN_RESOURCE
       {/* Top bar */}
       <div className="relative z-20 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🔥</span>
+          <img
+            src={HYDRA_LOGO}
+            alt="Hydra"
+            className="w-8 h-8 rounded-full object-cover"
+          />
           <span className="font-mono text-lg font-bold text-primary tracking-tight">
             HYDRA
           </span>
@@ -389,7 +397,11 @@ BURN_RESOURCE
         <div className="w-full max-w-md">
           {!connected ? (
             <div className="space-y-4 rounded-xl border border-border/50 bg-card/60 p-8 text-center backdrop-blur-sm">
-              <span className="block animate-pulse-burn text-4xl">🔥</span>
+              <img
+                src={HYDRA_LOGO}
+                alt="Hydra"
+                className="w-12 h-12 rounded-full object-cover mx-auto animate-pulse-burn"
+              />
               <p className="font-mono text-sm tracking-wide text-muted-foreground">
                 Connect your wallet to burn HYDR tokens
               </p>
@@ -417,7 +429,11 @@ BURN_RESOURCE
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <span className="text-lg text-burn">🔥</span>
+                  <img
+                    src={HYDRA_LOGO}
+                    alt="Hydra"
+                    className="w-7 h-7 rounded-full object-cover flex-shrink-0"
+                  />
                   <input
                     type="number"
                     value={burnAmount || ""}
@@ -456,7 +472,11 @@ BURN_RESOURCE
               {/* Aviso aguardando carteira */}
               {burnPhase === "awaiting_wallet" && (
                 <div className="animate-fade-in rounded-xl border border-burn/30 bg-burn/10 p-4 text-center">
-                  <div className="mb-1 animate-pulse text-2xl">🔥</div>
+                  <img
+                    src={HYDRA_LOGO}
+                    alt="Hydra"
+                    className="w-8 h-8 rounded-full object-cover mx-auto mb-2 animate-pulse"
+                  />
                   <p className="font-mono text-sm text-burn">
                     Check your Radix Wallet and approve the burn
                   </p>
@@ -478,8 +498,7 @@ BURN_RESOURCE
 
               {burnAmount > 0 && burnPhase === "idle" && (
                 <p className="animate-fade-in text-center font-mono text-xs text-muted-foreground">
-                  {burnAmount.toLocaleString("en-US")} HYDR will be permanently
-                  destroyed
+                  {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
                 </p>
               )}
             </div>
