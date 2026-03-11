@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   RadixDappToolkit,
   DataRequestBuilder,
   RadixNetwork,
 } from "@radixdlt/radix-dapp-toolkit";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 import BurnComplete from "@/components/BurnComplete";
 import EmberParticles from "@/components/EmberParticles";
 
