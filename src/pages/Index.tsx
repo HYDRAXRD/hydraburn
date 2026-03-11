@@ -273,6 +273,15 @@ BURN_RESOURCE
                 </div>
               </div>
 
+              {/* Slider */}
+              <Slider
+                value={sliderValue}
+                onValueChange={handleSliderChange}
+                max={100}
+                step={1}
+                className="py-2"
+              />
+
               {/* Burn Button */}
               <Button
                 variant="burn"
