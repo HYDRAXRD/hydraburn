@@ -19,6 +19,7 @@ const Index = () => {
   const [accountAddress, setAccountAddress] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [burnAmount, setBurnAmount] = useState(0);
+  const [sliderValue, setSliderValue] = useState([0]);
   const [burning, setBurning] = useState(false);
   const [burned, setBurned] = useState(false);
   const [burnedAmount, setBurnedAmount] = useState(0);
