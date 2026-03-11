@@ -6,7 +6,6 @@ import {
 } from "@radixdlt/radix-dapp-toolkit";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-import BurnComplete from "@/components/BurnComplete";
 import EmberParticles from "@/components/EmberParticles";
 
 const HYDRA_RESOURCE =
@@ -16,6 +15,9 @@ const DAPP_ACCOUNT =
   "account_rdx128thzxyzcsts99j7cudr492tg0r2wwdx32ay5qafa4r524mp0k0p8y";
 
 const POLL_INTERVAL = 15000;
+const SUCCESS_ANIMATION_DURATION = 2600;
+
+type BurnPhase = "idle" | "awaiting_wallet" | "success_anim";
 
 const Index = () => {
   const [connected, setConnected] = useState(false);
@@ -24,10 +26,26 @@ const Index = () => {
   const [burnAmount, setBurnAmount] = useState(0);
   const [sliderValue, setSliderValue] = useState([0]);
   const [burning, setBurning] = useState(false);
-  const [burned, setBurned] = useState(false);
+  const [burnPhase, setBurnPhase] = useState<BurnPhase>("idle");
   const [burnedAmount, setBurnedAmount] = useState(0);
   const [totalBurned, setTotalBurned] = useState<number | null>(null);
   const rdtRef = useRef<RadixDappToolkit | null>(null);
+  const resetTimeoutRef = useRef<number | null>(null);
+
+  const clearResetTimeout = () => {
+    if (resetTimeoutRef.current) {
+      window.clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = null;
+    }
+  };
+
+  const resetBurnUi = () => {
+    setBurnPhase("idle");
+    setBurning(false);
+    setBurnedAmount(0);
+    setBurnAmount(0);
+    setSliderValue([0]);
+  };
 
   const fetchTotalBurned = async () => {
     try {
@@ -44,6 +62,7 @@ const Index = () => {
       );
       const data = await response.json();
       const details = data?.items?.[0]?.details;
+
       if (details) {
         const totalMinted = parseFloat(details.total_minted || "0");
         const totalSupply = parseFloat(details.total_supply || "0");
@@ -81,13 +100,13 @@ const Index = () => {
         setConnected(false);
         setAccountAddress("");
         setBalance(null);
-        setBurnAmount(0);
-        setSliderValue([0]);
+        resetBurnUi();
       }
     });
 
     return () => {
       clearInterval(interval);
+      clearResetTimeout();
       sub.unsubscribe();
       rdt.destroy();
     };
@@ -107,24 +126,18 @@ const Index = () => {
           }),
         }
       );
+
       const data = await response.json();
       const items = data?.items?.[0]?.fungible_resources?.items || [];
       const hydra = items.find(
         (item: any) => item.resource_address === HYDRA_RESOURCE
       );
+
       if (hydra) {
-        const amount = parseFloat(
-          hydra.vaults?.items?.[0]?.amount || "0"
-        );
-        const floored = Math.floor(amount);
-        setBalance(floored);
-        // Reset burn amount to 0 when balance is refreshed
-        setBurnAmount(0);
-        setSliderValue([0]);
+        const amount = parseFloat(hydra.vaults?.items?.[0]?.amount || "0");
+        setBalance(Math.floor(amount));
       } else {
         setBalance(0);
-        setBurnAmount(0);
-        setSliderValue([0]);
       }
     } catch {
       setBalance(0);
@@ -136,6 +149,8 @@ const Index = () => {
       setSliderValue(value);
       if (balance && balance > 0) {
         setBurnAmount(Math.floor((value[0] / 100) * balance));
+      } else {
+        setBurnAmount(0);
       }
     },
     [balance]
@@ -145,8 +160,11 @@ const Index = () => {
     const val = parseInt(e.target.value) || 0;
     const clamped = Math.min(Math.max(val, 0), balance || 0);
     setBurnAmount(clamped);
+
     if (balance && balance > 0) {
       setSliderValue([(clamped / balance) * 100]);
+    } else {
+      setSliderValue([0]);
     }
   };
 
@@ -159,14 +177,19 @@ const Index = () => {
 
   const handleBurn = async () => {
     if (!rdtRef.current || burnAmount <= 0 || !accountAddress) return;
+
+    clearResetTimeout();
     setBurning(true);
+    setBurnPhase("awaiting_wallet");
+
+    const currentBurnAmount = burnAmount;
 
     const manifest = `
 CALL_METHOD
     Address("${accountAddress}")
     "withdraw"
     Address("${HYDRA_RESOURCE}")
-    Decimal("${burnAmount}")
+    Decimal("${currentBurnAmount}")
 ;
 
 TAKE_ALL_FROM_WORKTOP
@@ -185,20 +208,26 @@ BURN_RESOURCE
       });
 
       if (result.isOk()) {
-        setBurnedAmount(burnAmount);
-        setBurned(true);
+        setBurnedAmount(currentBurnAmount);
+        setBurnPhase("success_anim");
+        setBurning(false);
+
+        await fetchBalance(accountAddress);
         setTimeout(fetchTotalBurned, 3000);
+
+        resetTimeoutRef.current = window.setTimeout(() => {
+          resetBurnUi();
+        }, SUCCESS_ANIMATION_DURATION);
+      } else {
+        setBurnPhase("idle");
+        setBurning(false);
       }
     } catch (err) {
       console.error("Burn transaction failed:", err);
-    } finally {
+      setBurnPhase("idle");
       setBurning(false);
     }
   };
-
-  if (burned) {
-    return <BurnComplete amount={burnedAmount} />;
-  }
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background overflow-hidden">
@@ -207,12 +236,15 @@ BURN_RESOURCE
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,_hsla(16,100%,50%,0.06)_0%,_transparent_60%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_transparent_50%,_hsl(var(--background))_100%)]" />
 
-      {/* Top bar */}
       <div className="relative z-20 flex items-center justify-between px-6 py-4">
         <div className="flex items-center gap-2">
           <span className="text-2xl">🔥</span>
-          <span className="font-mono text-lg font-bold text-primary tracking-tight">HYDRA</span>
-          <span className="rounded bg-burn/20 px-2 py-0.5 font-mono text-[10px] font-bold text-burn uppercase tracking-widest">Burn</span>
+          <span className="font-mono text-lg font-bold text-primary tracking-tight">
+            HYDRA
+          </span>
+          <span className="rounded bg-burn/20 px-2 py-0.5 font-mono text-[10px] font-bold text-burn uppercase tracking-widest">
+            Burn
+          </span>
         </div>
         <div>
           {/* @ts-ignore */}
@@ -220,51 +252,50 @@ BURN_RESOURCE
         </div>
       </div>
 
-      {/* Main content */}
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6 pb-12">
-        {/* Total Burned Hero */}
         <div className="mb-10 text-center">
-          <p className="font-mono text-xs text-muted-foreground uppercase tracking-[0.3em] mb-3">
+          <p className="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-muted-foreground">
             Total HYDR Burned
           </p>
           <div className="relative">
-            <h1 className="font-mono text-5xl sm:text-7xl font-black text-burn tracking-tight tabular-nums">
+            <h1 className="font-mono text-5xl font-black tracking-tight text-burn tabular-nums sm:text-7xl">
               {totalBurned !== null
                 ? totalBurned.toLocaleString("en-US")
                 : "···"}
             </h1>
             <div className="absolute -inset-4 -z-10 rounded-2xl bg-burn/5 blur-2xl" />
           </div>
-          <p className="mt-3 text-sm text-foreground/60 tracking-wide">
+          <p className="mt-3 text-sm tracking-wide text-foreground/60">
             tokens permanently destroyed
           </p>
         </div>
 
-        {/* Burn Card */}
         <div className="w-full max-w-md">
           {!connected ? (
-            <div className="rounded-xl border border-border/50 bg-card/60 p-8 backdrop-blur-sm text-center space-y-4">
-              <span className="text-4xl block animate-pulse-burn">🔥</span>
-              <p className="font-mono text-sm text-muted-foreground tracking-wide">
+            <div className="space-y-4 rounded-xl border border-border/50 bg-card/60 p-8 text-center backdrop-blur-sm">
+              <span className="block animate-pulse-burn text-4xl">🔥</span>
+              <p className="font-mono text-sm tracking-wide text-muted-foreground">
                 Connect your wallet to burn HYDR tokens
               </p>
             </div>
           ) : (
             <div className="space-y-5 animate-fade-in">
-              {/* Input with balance display */}
               <div className="rounded-xl border border-border bg-card p-4 transition-all focus-within:border-burn/40 focus-within:shadow-[0_0_20px_hsla(16,100%,50%,0.1)]">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-mono text-xs text-muted-foreground uppercase tracking-widest">Burn amount</span>
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
+                    Burn amount
+                  </span>
                   <button
                     onClick={() => fetchBalance(accountAddress)}
-                    className="font-mono text-xs text-muted-foreground hover:text-burn transition-colors"
+                    className="font-mono text-xs text-muted-foreground transition-colors hover:text-burn"
                     title="Refresh balance"
                   >
                     Balance: {balance !== null ? balance.toLocaleString("en-US") : "..."} HYDR ↻
                   </button>
                 </div>
+
                 <div className="flex items-center gap-3">
-                  <span className="text-burn text-lg">🔥</span>
+                  <span className="text-lg text-burn">🔥</span>
                   <input
                     type="number"
                     value={burnAmount || ""}
@@ -272,33 +303,57 @@ BURN_RESOURCE
                     placeholder="0"
                     min={0}
                     max={balance || 0}
-                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    disabled={burning}
+                    className="flex-1 bg-transparent font-mono text-2xl text-primary outline-none placeholder:text-muted-foreground disabled:opacity-60 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                   <span className="font-mono text-sm text-foreground">HYDR</span>
                   <button
                     onClick={handleAll}
-                    className="rounded bg-burn/20 px-3 py-1 font-mono text-xs font-bold text-burn transition-colors hover:bg-burn/30"
+                    disabled={burning}
+                    className="rounded bg-burn/20 px-3 py-1 font-mono text-xs font-bold text-burn transition-colors hover:bg-burn/30 disabled:opacity-50"
                   >
                     MAX
                   </button>
                 </div>
               </div>
 
-              {/* Slider */}
               <Slider
                 value={sliderValue}
                 onValueChange={handleSliderChange}
                 max={100}
                 step={1}
+                disabled={burning}
                 className="py-2"
               />
 
-              {/* Percentage label */}
               <p className="text-center font-mono text-xs text-muted-foreground">
                 {sliderValue[0].toFixed(0)}% of balance
               </p>
 
-              {/* Burn Button */}
+              {burnPhase === "awaiting_wallet" && (
+                <div className="rounded-xl border border-burn/30 bg-burn/10 p-4 text-center animate-fade-in">
+                  <div className="mb-2 text-3xl animate-pulse">🔥</div>
+                  <p className="font-mono text-sm text-burn">
+                    Check your wallet and approve the burn
+                  </p>
+                </div>
+              )}
+
+              {burnPhase === "success_anim" && (
+                <div className="rounded-xl border border-burn/40 bg-gradient-to-br from-burn/20 via-burn/10 to-transparent p-5 text-center animate-fade-in">
+                  <div className="mb-3 text-5xl animate-pulse">🔥</div>
+                  <p className="font-mono text-lg font-bold text-burn">
+                    Burn completed
+                  </p>
+                  <p className="mt-2 font-mono text-sm text-foreground">
+                    {burnedAmount.toLocaleString("en-US")} HYDR destroyed
+                  </p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Returning to burn screen...
+                  </p>
+                </div>
+              )}
+
               <Button
                 variant="burn"
                 size="lg"
@@ -306,11 +361,15 @@ BURN_RESOURCE
                 disabled={burnAmount <= 0 || burning}
                 onClick={handleBurn}
               >
-                {burning ? "AWAITING WALLET..." : "BURN"}
+                {burnPhase === "awaiting_wallet"
+                  ? "AWAITING WALLET..."
+                  : burnPhase === "success_anim"
+                  ? "BURN COMPLETE"
+                  : "BURN"}
               </Button>
 
-              {burnAmount > 0 && (
-                <p className="text-center font-mono text-xs text-muted-foreground animate-fade-in">
+              {burnAmount > 0 && burnPhase === "idle" && (
+                <p className="animate-fade-in text-center font-mono text-xs text-muted-foreground">
                   {burnAmount.toLocaleString("en-US")} HYDR will be permanently destroyed
                 </p>
               )}
