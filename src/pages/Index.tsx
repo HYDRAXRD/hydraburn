@@ -293,13 +293,13 @@ const Index = () => {
   };
 
   const handleBurn = async () => {
-    if (!rdtRef.current || burnAmount <= 0 || !accountAddress) return;
+  if (!rdtRef.current || burnAmount <= 0 || !accountAddress) return;
 
-    setBurning(true);
-    setBurnPhase("awaiting_wallet");
-    const amount = burnAmount;
+  setBurning(true);
+  setBurnPhase("awaiting_wallet");
+  const amount = burnAmount;
 
-    const manifest = `
+  const manifest = `
 CALL_METHOD
     Address("${accountAddress}")
     "withdraw"
@@ -314,27 +314,25 @@ BURN_RESOURCE
     Bucket("bucket1")
 ;`.trim();
 
-    try {
-      const result = await rdtRef.current.walletApi.sendTransaction({
-        transactionManifest: manifest,
-      });
+  try {
+    const result = await rdtRef.current.walletApi.sendTransaction({
+      transactionManifest: manifest,
+    });
 
-      if (result.isOk()) {
-        setBurnedAmount(amount);
-        setBurnPhase("success_anim");
-        setBurning(false);
-        fetchBalance(accountAddress);
-        setTimeout(fetchTotalBurned, 3000);
-      } else {
-        setBurnPhase("idle");
-        setBurning(false);
-      }
-    } catch (err) {
-      console.error("Burn failed:", err);
-      setBurnPhase("idle");
-      setBurning(false);
-    }
-  };
+    console.log("Burn transaction result:", result);
+
+    setBurnedAmount(amount);
+    setBurnPhase("success_anim");
+    setBurning(false);
+
+    fetchBalance(accountAddress);
+    setTimeout(fetchTotalBurned, 3000);
+  } catch (err) {
+    console.error("Burn failed:", err);
+    setBurnPhase("idle");
+    setBurning(false);
+  }
+};
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background overflow-hidden">
