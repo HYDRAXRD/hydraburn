@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "hydraburn",
+  "account_id": "13c3523734e8da7d11f153258dfde811",
+  "compatibility_date": "2026-03-12",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  }
+}
